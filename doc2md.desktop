@@ -7,4 +7,4 @@ Actions=ConvertToMD
 [Desktop Action ConvertToMD]
 Name=Convert to Markdown
 Icon=text-markdown
-Exec=bash -c '/home/furbis/media/ptah/claude_projects/doc2md/doc2md.py %F && kdialog --title "doc2md" --passivepopup "Converted to Markdown" 4 || kdialog --title "doc2md" --error "Conversion failed.\nSee a terminal for details."'
+Exec=bash -c '/home/furbis/media/ptah/claude_projects/doc2md/doc2md.py "$@" && kdialog --title "doc2md" --passivepopup "Converted to Markdown" 4 || kdialog --title "doc2md" --error "Conversion failed.\nSee a terminal for details."' -- %F

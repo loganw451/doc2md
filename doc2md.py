@@ -20,20 +20,24 @@ from pathlib import Path
 # ── Converters ────────────────────────────────────────────────────────────────
 
 def convert_docx(src: Path, dst: Path) -> None:
-    """Use pandoc for .docx → .md (best fidelity: headings, bold, tables, lists)."""
-    result = subprocess.run(
-        [
-            "pandoc",
-            str(src),
-            "-f", "docx",
-            "-t", "gfm",          # GitHub-Flavoured Markdown
-            "--wrap=none",         # no hard line-wraps
-            "-o", str(dst),
-        ],
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"pandoc error: {result.stderr.strip()}")
+    """LibreOffice headless → HTML, then html2text → Markdown."""
+    import tempfile, html2text as h2t
+    with tempfile.TemporaryDirectory() as tmp:
+        result = subprocess.run(
+            ["libreoffice", "--headless", "--convert-to", "html", "--outdir", tmp, str(src)],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"libreoffice error: {result.stderr.strip()}")
+        html_files = list(Path(tmp).glob("*.html"))
+        if not html_files:
+            raise RuntimeError("libreoffice produced no HTML output")
+        html = html_files[0].read_text(encoding="utf-8", errors="replace")
+
+    converter = h2t.HTML2Text()
+    converter.ignore_images = True
+    converter.body_width = 0  # no hard wraps
+    dst.write_text(converter.handle(html), encoding="utf-8")
 
 
 def convert_pdf(src: Path, dst: Path) -> None:
