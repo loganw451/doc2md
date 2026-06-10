@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-doc2md.py — Convert .docx and .pdf files to Markdown.
+doc2md.py — Convert .docx, .pdf, and .epub files to Markdown.
 
 Usage:
     python doc2md.py file.docx              → file.md (same directory)
     python doc2md.py file.pdf               → file.md
+    python doc2md.py file.epub              → file.md
     python doc2md.py file.pdf -o out.md     → out.md
-    python doc2md.py *.docx *.pdf           → batch convert, same dir as each input
-    python doc2md.py dir/ -o outdir/        → convert all docx/pdf in dir/
+    python doc2md.py *.docx *.pdf *.epub    → batch convert, same dir as each input
+    python doc2md.py dir/ -o outdir/        → convert all docx/pdf/epub in dir/
 """
 
 import argparse
@@ -38,6 +39,31 @@ def convert_docx(src: Path, dst: Path) -> None:
     converter.ignore_images = True
     converter.body_width = 0  # no hard wraps
     dst.write_text(converter.handle(html), encoding="utf-8")
+
+
+def convert_epub(src: Path, dst: Path) -> None:
+    """EPUB → Markdown via ebooklib + html2text, preserving spine order."""
+    try:
+        import ebooklib
+        from ebooklib import epub
+    except ImportError:
+        raise RuntimeError("ebooklib not installed: pip install ebooklib")
+    import html2text as h2t
+
+    book = epub.read_epub(str(src), options={"ignore_ncx": True})
+
+    converter = h2t.HTML2Text()
+    converter.ignore_images = True
+    converter.body_width = 0
+
+    parts = []
+    for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
+        html = item.get_content().decode("utf-8", errors="replace")
+        md = converter.handle(html).strip()
+        if md:
+            parts.append(md)
+
+    dst.write_text("\n\n---\n\n".join(parts), encoding="utf-8")
 
 
 def convert_pdf(src: Path, dst: Path) -> None:
@@ -87,6 +113,7 @@ def convert_pdf(src: Path, dst: Path) -> None:
 
 CONVERTERS = {
     ".docx": convert_docx,
+    ".epub": convert_epub,
     ".pdf":  convert_pdf,
 }
 
@@ -125,12 +152,12 @@ def resolve_pairs(inputs: list[str], output: str | None) -> list[tuple[Path, Pat
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Convert .docx / .pdf files to Markdown.",
+        description="Convert .docx / .epub / .pdf files to Markdown.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     parser.add_argument("inputs", nargs="+", metavar="FILE_OR_DIR",
-                        help=".docx / .pdf files or a directory containing them")
+                        help=".docx / .epub / .pdf files or a directory containing them")
     parser.add_argument("-o", "--output", metavar="OUT",
                         help="output file (single input) or directory (batch)")
     args = parser.parse_args()

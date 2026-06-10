@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Service
 X-KDE-ServiceTypes=KonqPopupMenu/Plugin
-MimeType=application/pdf;application/vnd.openxmlformats-officedocument.wordprocessingml.document;
+MimeType=application/pdf;application/epub+zip;application/vnd.openxmlformats-officedocument.wordprocessingml.document;
 Actions=ConvertToMD
 
 [Desktop Action ConvertToMD]
